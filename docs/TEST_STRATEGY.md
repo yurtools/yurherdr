@@ -20,8 +20,7 @@ mock/offscreen rendering and Linux containers each establish only their named
 layer. Linux-container results are Linux evidence; an already configured Windows
 container engine may establish specifically tested Windows build/non-GUI contracts
 within its recorded image, kernel and isolation limits. No container result
-establishes native desktop, IME or monitor behavior. No Windows engine is currently
-exposed/verified here; this clarification requests no mode switch, installation,
+establishes native desktop, IME or monitor behavior. No Windows-container engine was verified for this task; this clarification requests no mode switch, installation,
 host probing or new tests. Before
 announcing or releasing OS support, execute the applicable native build/package,
 desktop and hardware checks below and record exact versions and limits.
@@ -63,8 +62,8 @@ a utility VM. Microsoft's [Windows container guidance](https://learn.microsoft.c
 distinguishes these modes and non-interactive workloads from desktop GUI support
 (consulted 2026-11-23). Neither Windows nor Linux container results establish
 native desktop/IME/monitor behavior; cross-compilation does not execute a target
-GUI either. No Windows-container engine is exposed/verified for this task, and no
-mode switch, installation, host probing or additional tests are requested.
+GUI either. No Windows-container engine was verified for this task; no mode switch,
+installation, host probing or additional tests are requested.
 
 When native validation is scheduled, use Linux/Windows/macOS jobs plus suitable desktop acceptance hosts. Their absence is currently deferred under the scope above; no host provisioning is required to continue implementation. Run security/review checks on the same reviewed changes. Keep runner/toolchain versions explicit, monitor updates and retain actual run metadata.
 

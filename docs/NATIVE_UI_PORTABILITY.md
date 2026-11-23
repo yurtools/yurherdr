@@ -76,8 +76,8 @@ Docker Desktop does not always mean Linux containers: an already configured
 Windows-container engine could establish specifically tested Windows build/non-GUI
 contracts within recorded image/kernel/isolation limits. Linux-container results
 are Linux evidence. No container result establishes native desktop/IME/monitor
-behavior. No Windows engine is exposed/verified here; no mode switch, installation,
-host probing or new tests are requested. See the [testing strategy's primary
+behavior. No Windows-container engine was verified for this task; no mode switch,
+installation, host probing or new tests are requested. See the [testing strategy's primary
 Docker/Microsoft references](TEST_STRATEGY.md#docker-hosted-ci-and-aws).
 
 | Capability | Available local / Docker evidence | Source / dependency path | Contained gap or adapter needed | Deferred native check and concrete revisit trigger |
