@@ -17,7 +17,12 @@ This deferral does not waive available regression failures, safe local native
 startup/cleanup, malformed-input bounds, cancellation or view/session ownership.
 Keep unimplemented guards fail closed. Cross-target queries, cross-compilation,
 mock/offscreen rendering and Linux containers each establish only their named
-layer; Docker Desktop is not native Windows/macOS execution proof. Before
+layer. Linux-container results are Linux evidence; an already configured Windows
+container engine may establish specifically tested Windows build/non-GUI contracts
+within its recorded image, kernel and isolation limits. No container result
+establishes native desktop, IME or monitor behavior. No Windows engine is currently
+exposed/verified here; this clarification requests no mode switch, installation,
+host probing or new tests. Before
 announcing or releasing OS support, execute the applicable native build/package,
 desktop and hardware checks below and record exact versions and limits.
 
@@ -44,7 +49,22 @@ A headless or virtual display result must be labeled accordingly. Native clipboa
 
 ## Docker, hosted CI and AWS
 
-Docker is useful for pinned Linux build/integration dependencies and multiple Linux distributions. Containers share a kernel; a Linux container does not provide a Windows or macOS native desktop. Docker Desktop on those hosts runs Linux containers in a Linux VM. Cross-compiling alone also does not execute a target GUI.
+Docker is useful for reproducible build and non-GUI integration workloads. Linux
+containers provide Linux evidence, including when Docker Desktop runs them in a
+Linux VM on Windows/macOS. Docker Desktop can also run Windows containers in
+appropriate Windows configurations; it is not synonymous with Linux containers.
+See [Docker's Windows installation requirements](https://docs.docker.com/desktop/setup/install/windows-install/)
+(consulted 2026-11-23).
+
+An already configured Windows-container engine could establish the particular
+Windows build/non-GUI contracts actually tested, within the recorded image/kernel/
+isolation limits. Process isolation shares the host kernel; Hyper-V isolation uses
+a utility VM. Microsoft's [Windows container guidance](https://learn.microsoft.com/en-us/virtualization/windowscontainers/quick-start/lift-shift-to-containers)
+distinguishes these modes and non-interactive workloads from desktop GUI support
+(consulted 2026-11-23). Neither Windows nor Linux container results establish
+native desktop/IME/monitor behavior; cross-compilation does not execute a target
+GUI either. No Windows-container engine is exposed/verified for this task, and no
+mode switch, installation, host probing or additional tests are requested.
 
 When native validation is scheduled, use Linux/Windows/macOS jobs plus suitable desktop acceptance hosts. Their absence is currently deferred under the scope above; no host provisioning is required to continue implementation. Run security/review checks on the same reviewed changes. Keep runner/toolchain versions explicit, monitor updates and retain actual run metadata.
 

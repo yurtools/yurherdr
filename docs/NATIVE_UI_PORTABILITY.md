@@ -72,6 +72,14 @@ needed for this docs-only audit. Every native check listed is deferred/not run.
 The implementing task owns the adapter and its checks; the Feature owner schedules
 native validation before announcing the corresponding support.
 
+Docker Desktop does not always mean Linux containers: an already configured
+Windows-container engine could establish specifically tested Windows build/non-GUI
+contracts within recorded image/kernel/isolation limits. Linux-container results
+are Linux evidence. No container result establishes native desktop/IME/monitor
+behavior. No Windows engine is exposed/verified here; no mode switch, installation,
+host probing or new tests are requested. See the [testing strategy's primary
+Docker/Microsoft references](TEST_STRATEGY.md#docker-hosted-ci-and-aws).
+
 | Capability | Available local / Docker evidence | Source / dependency path | Contained gap or adapter needed | Deferred native check and concrete revisit trigger |
 | --- | --- | --- | --- | --- |
 | Native windows / rendering | Linux native build; Wayland backend smoke exit 0, no presentation capture; three target queries only | K/G selector, public `open_window`; Mac Metal, Windows DirectX, Linux WGPU | Probe guard/core prerequisites block non-Linux launch; no OS presentation observed | Real windows, focus, GPU/compositor, close/reopen on each OS; revisit if required window operations lack a usable public path or require pervasive forks |
