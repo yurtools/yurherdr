@@ -56,7 +56,7 @@ curl --fail --location --silent --show-error \
   --output cursor-tree.json
 ```
 
-Initial sandbox downloads in YUR-004 exited 6 (DNS); permitted network retries exited 0. Record actual network/sandbox failures separately from source facts. If access, checksum verification or complete reading is unavailable, record the failed step, environment and exit code; obtain approved access or an already verified exact-byte copy before claiming the corresponding review. Never replace it with a similarly named skill, invent a hash or mark an unavailable audit complete. GitHub API rate limits or missing CLI/PR access must also be stated explicitly.
+Initial sandbox downloads in YUR-004 exited 6 (DNS); permitted network retries exited 0. GitHub HTML blob pages returned HTTP 503 during link checks, while the exact raw endpoints above succeeded and matched the pinned hashes. Record actual network/sandbox failures separately from source facts. If access, checksum verification or complete reading is unavailable, record the failed step, environment and exit code; obtain approved access or an already verified exact-byte copy before claiming the corresponding review. Never replace it with a similarly named skill, invent a hash or mark an unavailable audit complete. GitHub API rate limits or missing CLI/PR access must also be stated explicitly.
 
 ## Review procedure for every implementation change
 
@@ -79,7 +79,7 @@ git diff "$YURHERDR_BASE" "$YURHERDR_HEAD" --
 git status --porcelain=v1 --untracked-files=all
 ```
 
-Use `git show HEAD:path` with the recorded full head instead of a mutable working file when necessary. A triple-dot comparison is acceptable only when its resolved merge-base scope is recorded. Review adjacent unchanged callers to understand changed behavior, but do not report unrelated pre-existing defects as regressions introduced by the change.
+Read committed file contents with `git show "${YURHERDR_HEAD}:relative/path"`, using the recorded full head rather than a mutable working file or symbolic HEAD. A triple-dot comparison is acceptable only when its resolved merge-base scope is recorded. Review adjacent unchanged callers to understand changed behavior, but do not report unrelated pre-existing defects as regressions introduced by the change.
 
 ## Required records and limits
 
