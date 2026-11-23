@@ -58,4 +58,4 @@ For Blueprint, exercise source mapping, selection/feedback targeting, stale docu
 - GPUI platform evaluation: https://github.com/zed-industries/zed/tree/main/crates/gpui
 - Qt platform evaluation: https://doc.qt.io/qt-6/supported-platforms.html
 
-Toolkit links are candidates, not a selection. Evaluate terminal embedding, rich documents, accessibility, licensing, platform APIs and multi-window support against YUR-005 before an architecture decision.
+Toolkit links are candidates, not a selection. The [provenance inventory](PROVENANCE.md) assigns the later pin/license gates for toolkit, core and test-infrastructure sources. Evaluate terminal embedding, rich documents, accessibility, licensing, platform APIs and multi-window support against YUR-005 before an architecture decision.

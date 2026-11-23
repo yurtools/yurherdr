@@ -2,7 +2,7 @@
 
 All rows are **planned for the new native app**. This is an inventory of the current workspace and a coverage map, not a statement that the rewrite implements them. Existing limitations remain explicit until a task proves expanded support.
 
-Baseline evidence: the existing repository’s lib/features.json, lib/addons.json, README.md and docs/workspace.md, settings.md, approvals.md, addons.md, install.md, web.md and insights.md. The inventory references the 3.1.35-derived Yurherdr workspace; newer upstream 3.2.x behavior is not silently substituted. Baseline commit/provenance reconciliation is YUR-004.
+Baseline evidence: the existing repository’s lib/features.json, lib/addons.json, README.md and docs/workspace.md, settings.md, approvals.md, addons.md, install.md, web.md and insights.md. The inventory references the 3.1.35-derived legacy workspace at `9d92deccc01d1328a656e5a712a6732a3f4715aa`; newer upstream 3.2.x behavior is not silently substituted. See the [verified baseline distinctions and reuse gates](PROVENANCE.md). This pins the inventory’s source, not an executed parity or implementation audit.
 
 ## Registered baseline features
 

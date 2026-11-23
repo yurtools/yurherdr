@@ -21,6 +21,7 @@ Yurherdr will own its desktop interface and workflow while herdr-core runs agent
 - The ordered task list and acceptance criteria are kept locally in `local/REWRITE_PLAN.md`.
 - [Current-feature parity inventory](docs/FEATURE_PARITY.md)
 - [Plugin system and reference integrations](docs/PLUGINS.md)
+- [Source provenance and dependency inventory](docs/PROVENANCE.md)
 - [Required review policy](docs/REVIEW_POLICY.md)
 - [Cross-platform testing strategy](docs/TEST_STRATEGY.md)
 - [Contributor and agent rules](AGENTS.md)
@@ -35,4 +36,4 @@ Development will use a separate executable, app identity, state directories and 
 
 ## Origins
 
-The feature baseline is the existing [yurtools/shepherdr](https://github.com/yurtools/shepherdr) workspace, derived from Elias Stravik’s [Shepherdr](https://github.com/eliasstravik/shepherdr) 3.1.35, including the fork’s documented extensions. This is a new application project, not a claim to have authored upstream work. License and notice preservation is required before reusing source, assets or fixtures; see YUR-004.
+The feature baseline is the [yurtools/shepherdr](https://github.com/yurtools/shepherdr) workspace at `9d92deccc01d1328a656e5a712a6732a3f4715aa`, derived from Elias Stravik’s [Shepherdr](https://github.com/eliasstravik/shepherdr) 3.1.35, including the fork’s documented extensions. This is a new application project, not a claim to have authored upstream work. The [provenance inventory](docs/PROVENANCE.md) distinguishes that baseline from the upstream release, other local refs and pending changes, and records license/notice gates before reuse. Toolkit and dependency adoption remain future work.
