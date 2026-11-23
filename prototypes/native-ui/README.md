@@ -90,7 +90,8 @@ python3 prototypes/native-ui/dependency_inventory.py \
 The inventory uses target-specific Cargo **build trees**; metadata includes
 inactive optional edges and cannot alone establish the compiled graph. The CSV
 includes host build dependencies, feature unions and root notice digests. It is
-an inventory, not complete per-file/native-library license clearance.
+resolved on the observed Linux host; it is not a build on the other hosts or
+complete per-file/native-library license clearance.
 
 ## Independent core preparation
 
@@ -147,6 +148,14 @@ interactive evaluation. Closing all windows keeps the session alive; reopen from
 a remaining window or OS application activation where supported. Use **Quit
 evaluation** to stop. No unknown path is removed automatically; failed or partial
 run roots remain marked for inspection.
+
+Linux native mode rejects a headless GPUI connection before opening windows.
+Smoke diagnostics report the public connected-platform compositor/backend name.
+An earlier exit-zero attempt without that observation remains backend-unverified;
+window construction success alone is not OS presentation evidence.
+The later container attempt reported **Wayland**, exited zero and removed its
+owned core socket. No presentation screenshot, native interaction or compositor/
+GPU/IME version was observed; those acceptance cells remain pending.
 
 The private root assumes one trusted same-user owner. It rejects static aliases
 and revalidates before effects; it does not confine a malicious same-user actor

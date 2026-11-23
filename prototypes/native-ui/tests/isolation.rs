@@ -51,14 +51,32 @@ fn snapshot(path: &Path) -> Vec<(PathBuf, u64, std::time::SystemTime)> {
     out
 }
 #[test]
-fn guard_is_read_only_and_cannot_grant_native_authority() {
+fn guard_cli_is_read_only_and_native_entry_without_core_is_rejected() {
     let l = Layout::new();
     let before = snapshot(&l.root);
-    let run = validate(&l.root, &l.nonce, None).unwrap();
-    assert_eq!(
-        run.authorize_native().unwrap_err(),
-        GuardError::CoreNotVerified
+    let probe = env!("CARGO_BIN_EXE_yurherdr-native-ui-probe");
+    let guard = std::process::Command::new(probe)
+        .args([
+            "--guard-only",
+            l.root.to_str().unwrap(),
+            "--nonce",
+            &l.nonce,
+        ])
+        .env_remove("HC_SESSION")
+        .output()
+        .unwrap();
+    assert!(guard.status.success());
+    assert!(
+        String::from_utf8(guard.stdout)
+            .unwrap()
+            .contains("runtime effects: zero")
     );
+    let blocked = std::process::Command::new(probe)
+        .args(["--native", l.root.to_str().unwrap(), "--nonce", &l.nonce])
+        .env_remove("HC_SESSION")
+        .output()
+        .unwrap();
+    assert!(!blocked.status.success());
     assert_eq!(before, snapshot(&l.root));
     assert!(prepare(&l.parent, &l.nonce).is_err());
     assert_eq!(before, snapshot(&l.root));

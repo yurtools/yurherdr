@@ -181,6 +181,17 @@ pub fn launch(run: GuardedRun, core: DevelopmentCore, smoke: bool) -> Result<(),
             _core: core,
         });
         if smoke {
+            // Public connected-platform observation, not an inference from
+            // DISPLAY/WAYLAND_DISPLAY or successful headless window creation.
+            eprintln!("Yurherdr probe display backend: {}", cx.compositor_name());
+        }
+        #[cfg(target_os = "linux")]
+        if cx.graphical_environment().is_none() {
+            eprintln!("Yurherdr probe: headless backend; OS window unavailable");
+            cx.quit();
+            return;
+        }
+        if smoke {
             cx.spawn(async move |cx| {
                 cx.background_executor().timer(Duration::from_secs(5)).await;
                 cx.update(|cx| cx.quit());

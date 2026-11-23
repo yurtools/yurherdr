@@ -53,8 +53,12 @@ off-render decode. No broad toolkit fork is introduced. Real Wayland clipboard
 interoperability, X11/macOS/Windows adapters and working bounded text paste remain
 open requirements. This gap is not toolkit selection evidence.
 
-The local proof binds final source to exact command exits and any attempted
-native launch, including failed attempts. No startup/input/render/resource
+The local proof binds final source to exact command exits and attempted
+launches, including failed attempts. A later guarded Linux container run reported
+the public GPUI backend **Wayland**, exited zero and removed its owned core
+socket. No presentation screenshot or native interaction was observed. The first
+exit-zero run lacked a backend observation and stays backend-unverified. Linux
+native mode now rejects headless fallback. No startup/input/render/resource
 benchmark is claimed. Research numerical thresholds remain proposals. No Windows
 or macOS host, mixed-DPI hardware or remote/cloud execution has been used.
 

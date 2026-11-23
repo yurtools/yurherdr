@@ -82,7 +82,7 @@ def main():
             inventory[key]["features"].update(active[pair] - {""})
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", newline="") as output:
-        writer = csv.DictWriter(output, fieldnames=["package", "version", "targets", "license", "source", "checksum", "root_terms", "features"])
+        writer = csv.DictWriter(output, lineterminator="\n", fieldnames=["package", "version", "targets", "license", "source", "checksum", "root_terms", "features"])
         writer.writeheader()
         for row in sorted(inventory.values(), key=lambda row: (row["package"], row["version"])):
             row["targets"] = ";".join(row["targets"])

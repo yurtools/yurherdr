@@ -99,13 +99,6 @@ impl GuardedRun {
         )
         .map(|_| ())
     }
-
-    /// Intentionally closed until a built core and its endpoint/identity handshake
-    /// have been verified. A manifest field cannot bypass this gate.
-    pub fn authorize_native(&self) -> Result<(), GuardError> {
-        self.revalidate()?;
-        Err(GuardError::CoreNotVerified)
-    }
 }
 
 fn nonce_valid(nonce: &str) -> bool {
