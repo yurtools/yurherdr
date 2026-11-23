@@ -215,7 +215,7 @@ pub fn launch(run: GuardedRun, core: DevelopmentCore, smoke: bool) -> Result<(),
     if opened.load(std::sync::atomic::Ordering::Acquire) {
         Ok(())
     } else {
-        Err(GuardError::Io)
+        Err(GuardError::NativeUnavailable)
     }
 }
 fn open_workspace(model: SharedModel, cx: &mut App) -> bool {

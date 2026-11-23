@@ -22,6 +22,7 @@ pub enum GuardError {
     PlatformNotAudited,
     CoreNotVerified,
     InvalidProfile,
+    NativeUnavailable,
 }
 
 impl std::fmt::Display for GuardError {
@@ -39,6 +40,9 @@ impl std::fmt::Display for GuardError {
             }
             Self::InvalidProfile => {
                 "native profile is not isolated; use run_probe.py with this owned run root"
+            }
+            Self::NativeUnavailable => {
+                "native display or initial window unavailable; check the evaluation session"
             }
         })
     }
