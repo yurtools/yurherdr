@@ -2,7 +2,7 @@
 
 YUR-004 · Feature `71116fa009c34f8cacd62f2992e4c6bd` · verified 2026-11-23.
 
-The YUR-004 baseline was documentation-only and adopted no application dependencies. YUR-005 adds an explicitly experimental dependency graph under `prototypes/native-ui/`; it does not select the product toolkit. A source reference establishes origin, not ownership, compatibility, legal clearance or native platform support. Review-skill access and hashes are in the [review policy](REVIEW_POLICY.md).
+The YUR-004 baseline was documentation-only and adopted no application dependencies. YUR-005 adds an experimental dependency graph under `prototypes/native-ui/`. YURH-4 records a provisional choice of that exact Rust/native GPUI Kit path under the owner's 2026-11-23 testing deferral; it changes no dependency, pin, notice or implementation. A source reference establishes origin, not ownership, compatibility, legal clearance or native platform support. Review-skill access and hashes are in the [review policy](REVIEW_POLICY.md).
 
 ## Frozen legacy baseline
 
@@ -70,18 +70,28 @@ Responsibilities below reflect the inspected texts; they are not a file-by-file 
 The YUR-005 **experimental** pins, exact archive digests, attribution and retained
 terms are now in [the prototype notice](../prototypes/native-ui/NOTICE.md), with
 the locked target-specific [dependency inventory](../prototypes/native-ui/DEPENDENCIES.csv)
-and [Proposed ADR](adr/0001-native-ui-toolkit.md). This includes native Kit/GPUI,
+and [conditional decision ADR](adr/0001-native-ui-toolkit.md). This includes native Kit/GPUI,
 independent PTY/parser and Linux clipboard fixtures, plus a separate independently
 built core/Ghostty/local Zig tool. No JavaScript host, Zed terminal crate or Qt
 dependency was adopted. Raw source/review/runtime evidence remains ignored.
 
-Other rows below remain **unselected and unpinned here**. These discovery URLs may move. Before evaluation/adoption, the owner must resolve the exact source repository/package, full commit or immutable artifact plus digest, version, license/notice files (including nested/transitive material), original attribution, intended files/use and Windows/macOS/Linux evidence. An evaluation pin does not authorize shipping it. Record rejection or selection in that task’s evidence/ADR; update this inventory when a dependency is actually adopted.
+The [portability audit](NATIVE_UI_PORTABILITY.md) distinguishes source/manifest
+support, Linux-host target resolution and actual execution. YURH-4 reverified
+the cached Kit/core/Ghostty archives and native GPUI-family/PTY/parser/Wayland
+crate bytes before relying on extracted source, compared retained notices and
+repeated the locked target queries. The 614 package/version entries are a native
+graph inventory, not three builds or distribution clearance. Root license labels
+and root-notice hashes do not clear nested files, native libraries, shader tools,
+fonts or the optional JavaScript runtime. The decision grants no unrestricted
+redistribution right; resolve those obligations before shipping.
+
+Sources below without an explicit experimental/conditional decision remain **unselected and unpinned here**. These discovery URLs may move. Before evaluation/adoption, the owner must resolve the exact source repository/package, full commit or immutable artifact plus digest, version, license/notice files (including nested/transitive material), original attribution, intended files/use and platform evidence at the applicable gate. An evaluation pin does not authorize shipping it. Record rejection or selection in that task’s evidence/ADR; update this inventory when a dependency is actually adopted.
 
 | Source category / discovery references | Later owner and gate |
 | --- | --- |
 | [herdr-core](https://github.com/herdrdev/herdr-core), including hc / HC_SESSION protocol identifiers | YUR-010 pins the core/protocol version and any client library/generated schema source before client implementation; YUR-005/YUR-008 pin any core used for an isolated prototype/fixture run first. Review compatibility and licenses; do not rename external protocol identifiers. |
-| [GPUI Kit](https://github.com/longbridge/gpui-kit), [GPUI in Zed](https://github.com/zed-industries/zed/tree/main/crates/gpui), native component path and separately optional JavaScript extension host | YUR-005 pins each actual repository/crate/subpath and transitive native component before prototyping. Resolve the extension host’s actual source rather than equating it with the native kit. Inspect each component’s terms; a Zed repository license is not automatically the license of every crate. No toolkit/JS host is selected. |
-| [Iced](https://github.com/iced-rs/iced), [Slint](https://slint.dev/), [Qt](https://doc.qt.io/qt-6/supported-platforms.html) | YUR-005 pins the sources/packages actually compared, their versions/editions and license options before evaluation, then records an ADR with three-platform evidence. Website support claims alone do not pass the prototype gate. |
+| [GPUI Kit](https://github.com/longbridge/gpui-kit), [GPUI in Zed](https://github.com/zed-industries/zed/tree/main/crates/gpui), native component path and separately optional JavaScript extension host | YUR-005 provisionally selects the exact native Kit/GPUI pins in the notice/ADR, with Windows/macOS/Linux retained targets and deferred native checks. Resolve any changed dependency's exact source/terms first. The JavaScript host is excluded and unselected; a Zed repository license is not automatically every crate's license. |
+| [Iced](https://github.com/iced-rs/iced), [Slint](https://slint.dev/), [Qt](https://doc.qt.io/qt-6/supported-platforms.html) | Compare only against an evidenced blocker under ADR 0001. Pin the sources/packages actually compared, versions/editions and license options first. The notice records a narrow pinned Qt source comparison only. Unavailable hosts alone do not require an alternative; website support claims do not pass native validation. |
 | [herdr-blueprint](https://github.com/chappse6/herdr-blueprint) (TUI plugin) and [herdr-blueprint-app](https://github.com/chappse6/herdr-blueprint-app) (desktop mod) | YUR-051 pins BOTH distinct sources and their license/notice chains before a port inventory. YUR-048–050 own host/SDK/runtime dependencies. Assess each reference independently; no unchanged plugin compatibility or privileged central-app shortcut is implied. |
 | [Telegram Bot API](https://core.telegram.org/bots/api), [signal-cli](https://github.com/AsamK/signal-cli) and its [JSON-RPC interface](https://github.com/AsamK/signal-cli/blob/master/man/signal-cli-jsonrpc.5.adoc) | YUR-052 chooses the first transport, pins client/protocol/runtime sources and captures documentation/version dates and provider terms before implementation. signal-cli is unofficial. Keep credentials and live accounts out of fixtures. |
 | Codex, Claude Code, Kimi, Goose, OpenCode and additional provider adapters/launchers | YUR-015–019 pin actual CLI/SDK/protocol/fixture sources and versions before integration. Names in README are capability goals, not adopted packages or redistribution permission. YUR-039 owns any voice/model/service sources. |
@@ -92,6 +102,6 @@ This covers the source categories referenced by README, the [test strategy](TEST
 
 ## Reuse record required in the owning change
 
-For each reused file/asset/fixture or dependency, record source URL, exact revision/subpath or artifact digest, upstream author/copyright, applicable license text and NOTICE/header locations, destination, modifications and required distribution notices. Retain original identifiers in attribution and explicit compatibility fixtures; new implementation uses the confirmed Yurherdr namespace (spelling gate YUR-007). Keep dependencies’ identifiers intact.
+For each reused file/asset/fixture or dependency, record source URL, exact revision/subpath or artifact digest, upstream author/copyright, applicable license text and NOTICE/header locations, destination, modifications and required distribution notices. Retain original identifiers in attribution and explicit compatibility fixtures; new implementation uses the confirmed Yurherdr namespace (spelling confirmed 2026-11-23; YUR-007 platform/data-location acceptance remains open). Keep dependencies’ identifiers intact.
 
 Resolve unknown license scope, missing notices and conflicting terms before copying or shipping; record the responsible owner’s decision and evidence. Do not infer authorization from public access, a manifest label or this inventory. Preserve required notices alongside any future reused material and include them in source/package attribution; do not silently vendor skill bodies. The full roadmap and local verification/proof assets stay under ignored `local/`, outside commits. YUR-004 verifies documentation, source bytes and workflow access only; no executed implementation audit, runtime parity or three-platform GUI proof is claimed.

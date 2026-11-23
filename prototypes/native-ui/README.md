@@ -4,7 +4,10 @@ YUR-005 · Feature `36be795f4590407eafd32028de2fc56e` · experimental slice, 202
 
 This single Rust crate evaluates GPUI Kit through its re-exports. It is not the
 Yurherdr product, a full herdr-core client, a plugin host or a platform support
-commitment. See the [Proposed ADR](../../docs/adr/0001-native-ui-toolkit.md) and
+commitment. The pinned Rust/native GPUI Kit path is provisionally selected for
+continued implementation under the owner's 2026-11-23 testing deferral. See the
+[conditional ADR](../../docs/adr/0001-native-ui-toolkit.md),
+[portability audit and revisit triggers](../../docs/NATIVE_UI_PORTABILITY.md) and
 [dependency/notice record](NOTICE.md). The person confirmed Yurherdr / yurherdr
 on 2026-11-23; YUR-007 and YUR-008 acceptance remain open.
 
@@ -185,6 +188,14 @@ Stalled-reader integration tests cover Stop and worker Drop within two seconds.
 Queued commits keep the input draft because a timeout can follow a partial write;
 retrying may repeat an already written prefix. Window lifetimes do not own the child.
 
+The two-second write deadline is established on the observed Unix/Linux path.
+On Windows, `owned_writer` uses portable-pty's `take_writer`; a blocking write
+can prevent the outer deadline from being rechecked. Windows stalled-reader,
+Stop/Drop and abrupt-parent-exit behavior remain unproven. Supply a cancellable
+bounded writer/owned-child cleanup before claiming that contract on Windows;
+do not infer it from dependency availability. macOS also needs abrupt-parent
+cleanup evidence because the fixture's parent-death signal is Linux-only.
+
 Input undo-history migration, geometric/keyboard selection extension and
 accessibility selection across window transfer remain unproven; the preserved
 document highlight/Copy is session-owned logical state, not restored native
@@ -199,6 +210,12 @@ is loaded, and no image is sent to a provider.
 | Mock-platform component/window tests | Observed; not desktop proof | Not a substitute | Pending | Pending |
 | Native windows/text/IME/image/terminal/rich text/detach | See dated local run evidence; no acceptance | Pending | Pending | Pending |
 | Accessibility/mixed DPI/monitors/GPU/long session | Not proven | Pending | Pending | Pending |
+
+Pending native checks are deferred under the owner's revised scope; they are
+not passes and do not prevent continuing the conditional implementation choice.
+The linked portability matrix separates contained harness/adapter gaps from any
+architecture exclusion and gives concrete follow-ups. This document's commands
+are the existing Linux runbook, not a working Windows/macOS launch procedure.
 
 For every host capture exact commit/lock/toolchain, OS/architecture, GPU/driver,
 compositor, scale/refresh, IME and screen reader versions. Record actual exits and

@@ -2,6 +2,32 @@
 
 Target Windows, macOS and Linux from the first prototype. Declare exact supported OS versions, architectures and provider versions only after evidence; target coverage is not current certification.
 
+## Current implementation decision and deferred checks
+
+For YUR-005, the owner's 2026-11-23 instruction permits a provisional implementation
+choice using this box or already configured Docker Desktop. [ADR 0001](adr/0001-native-ui-toolkit.md)
+selects the pinned Rust/native GPUI Kit path with [explicit portability conditions](NATIVE_UI_PORTABILITY.md).
+Do not repeatedly require unavailable Windows/macOS/desktop/hardware hosts before
+continuing that decision. Label those checks **deferred / not run**, with the
+affected capability, source path, required adapter and revisit trigger. Neither
+an absent host nor a successful target dependency query establishes a platform
+defect or a platform pass.
+
+This deferral does not waive available regression failures, safe local native
+startup/cleanup, malformed-input bounds, cancellation or view/session ownership.
+Keep unimplemented guards fail closed. Cross-target queries, cross-compilation,
+mock/offscreen rendering and Linux containers each establish only their named
+layer; Docker Desktop is not native Windows/macOS execution proof. Before
+announcing or releasing OS support, execute the applicable native build/package,
+desktop and hardware checks below and record exact versions and limits.
+
+The YURH-4 follow-up is documentation-only: carry forward YURH-3's exact
+`d43d64d5a61e01a103d9e5df1d2cd1c31b1f449d` results explicitly; do not rerun the
+unchanged prototype suite gratuitously or label the carry-forward a new run.
+Use diff/link/pin/exclusion checks and meaningful read-only target/feature
+inspection. Follow the documentation-only review procedure, without claiming
+new implementation structural or correctness/security audits.
+
 ## Test layers
 
 | Layer | Environment | What it establishes |
@@ -20,7 +46,7 @@ A headless or virtual display result must be labeled accordingly. Native clipboa
 
 Docker is useful for pinned Linux build/integration dependencies and multiple Linux distributions. Containers share a kernel; a Linux container does not provide a Windows or macOS native desktop. Docker Desktop on those hosts runs Linux containers in a Linux VM. Cross-compiling alone also does not execute a target GUI.
 
-Start with GitHub Actions Linux/Windows/macOS jobs plus suitable desktop acceptance hosts. Run security/review checks on the same reviewed changes. Keep runner/toolchain versions explicit, monitor updates and retain actual run metadata.
+When native validation is scheduled, use Linux/Windows/macOS jobs plus suitable desktop acceptance hosts. Their absence is currently deferred under the scope above; no host provisioning is required to continue implementation. Run security/review checks on the same reviewed changes. Keep runner/toolchain versions explicit, monitor updates and retain actual run metadata.
 
 Use EC2 or other dedicated/self-hosted machines when persistent reproductions, remote desktop sessions, controlled images or special hardware are needed. EC2 Mac uses Dedicated Hosts with a minimum 24-hour allocation; budget/availability must be reviewed before provisioning. Cloud VMs do not substitute for every physical-monitor/GPU/accessibility test. This plan provisions nothing.
 
@@ -58,4 +84,4 @@ For Blueprint, exercise source mapping, selection/feedback targeting, stale docu
 - GPUI platform evaluation: https://github.com/zed-industries/zed/tree/main/crates/gpui
 - Qt platform evaluation: https://doc.qt.io/qt-6/supported-platforms.html
 
-Toolkit links are candidates, not a selection. The [provenance inventory](PROVENANCE.md) assigns the later pin/license gates for toolkit, core and test-infrastructure sources. Evaluate terminal embedding, rich documents, accessibility, licensing, platform APIs and multi-window support against YUR-005 before an architecture decision.
+These planning links alone are not evidence for selection. The conditional native GPUI Kit decision uses the exact pins and primary source paths in [ADR 0001](adr/0001-native-ui-toolkit.md) and the [portability matrix](NATIVE_UI_PORTABILITY.md). The [provenance inventory](PROVENANCE.md) retains pin/license gates for changes and distribution. Terminal, rich documents, accessibility, platform APIs and multi-window native verification remain required before support claims.

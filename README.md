@@ -2,9 +2,9 @@
 
 A planned standalone native development workspace for coding agents, powered by [herdr-core](https://github.com/herdrdev/herdr-core).
 
-Yurherdr will own its desktop interface and workflow while herdr-core runs agent terminals, messaging and machine connections. The target platforms are **Windows, macOS and Linux**. Rust is the preferred application-core language; Rust + [GPUI Kit](https://github.com/longbridge/gpui-kit) is the first UI prototype candidate, with toolkit selection gated on cross-platform evidence.
+Yurherdr will own its desktop interface and workflow while herdr-core runs agent terminals, messaging and machine connections. The target platforms are **Windows, macOS and Linux**. Rust + the pinned native [GPUI Kit](https://github.com/longbridge/gpui-kit) path is **provisionally selected for continued implementation**, under the owner's 2026-11-23 deferral of tests unavailable on this box or Docker Desktop. [ADR 0001](docs/adr/0001-native-ui-toolkit.md) records the choice and [portability conditions](docs/NATIVE_UI_PORTABILITY.md).
 
-**Status: planned product with an experimental, guarded [native evaluation probe](prototypes/native-ui/README.md).** The probe is a YUR-005 experiment, not a supported client. Toolkit selection and three-platform acceptance remain open. The current Herdr/Shepherdr-based IDE remains a separate installation.
+**Status: planned product with an experimental, guarded [native evaluation probe](prototypes/native-ui/README.md).** The choice permits development; it does not establish three-platform support, accept YUR-005 or complete its Feature. Windows ownership checks, Windows/macOS core harnesses and several clipboard paths remain unimplemented. The current Herdr/Shepherdr-based IDE remains a separate installation.
 
 ## Planned experience
 
@@ -36,6 +36,6 @@ Development will use a separate executable, app identity, state directories and 
 
 ## Origins
 
-Evaluation pins are experimental, not product adoption decisions. [ADR 0001](docs/adr/0001-native-ui-toolkit.md) remains Proposed.
+The implementation choice is conditional and uses the existing exact pins. The optional JavaScript host, Fast and webview remain excluded. Dependency notice and distribution clearance remain separate gates.
 
-The feature baseline is the [yurtools/shepherdr](https://github.com/yurtools/shepherdr) workspace at `9d92deccc01d1328a656e5a712a6732a3f4715aa`, derived from Elias Stravik’s [Shepherdr](https://github.com/eliasstravik/shepherdr) 3.1.35, including the fork’s documented extensions. This is a new application project, not a claim to have authored upstream work. The [provenance inventory](docs/PROVENANCE.md) distinguishes that baseline from the upstream release, other local refs and pending changes, and records license/notice gates before reuse. Toolkit and dependency adoption remain future work.
+The feature baseline is the [yurtools/shepherdr](https://github.com/yurtools/shepherdr) workspace at `9d92deccc01d1328a656e5a712a6732a3f4715aa`, derived from Elias Stravik’s [Shepherdr](https://github.com/eliasstravik/shepherdr) 3.1.35, including the fork’s documented extensions. This is a new application project, not a claim to have authored upstream work. The [provenance inventory](docs/PROVENANCE.md) distinguishes that baseline from the upstream release, other local refs and pending changes, and records license/notice gates before reuse and distribution.

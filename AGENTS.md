@@ -4,14 +4,14 @@ This repository is the planned standalone native client over herdr-core. Read RE
 
 ## Scope and isolation
 
-- Target Windows, macOS and Linux. Rust is preferred for the application core; the UI toolkit is undecided until YUR-005 has real cross-platform evidence.
+- Target Windows, macOS and Linux. Under the owner's 2026-11-23 testing deferral, Rust + the pinned native GPUI Kit path is provisionally selected for continued implementation; follow [ADR 0001](docs/adr/0001-native-ui-toolkit.md) and its [portability conditions](docs/NATIVE_UI_PORTABILITY.md). Unavailable OS/desktop/hardware checks are deferred, never passed; do not block this implementation decision solely on missing hosts or announce native support before verification.
 - Develop against a distinct application identity, configuration/data/cache/log directories and isolated herdr-core session/state/socket. Keep the normal HOME; do not run the old herdr-app or herdr-task under a changed HOME/HERDR_APP_HOME.
 - The current IDE repository and live runtime are separate. Do not install into them, change their files/settings/services, restart their cores/windows, connect test workers to live spaces or synchronize helpers to linked machines for a test.
 - Do not start a second Herdr App window. A future standalone prototype must pass its isolation guard before running and use its own development core.
 
 ## Naming and provenance
 
-- Use the confirmed new Yurherdr namespace throughout new code, commands, crates, manifests, storage and environment variables. Confirm the Yurherdr/Yurherder spelling in YUR-007 before implementation.
+- Use the confirmed Yurherdr / yurherdr namespace throughout new code, commands, crates, manifests, storage and environment variables. The person confirmed spelling on 2026-11-23; YUR-007 platform/data-location acceptance remains open.
 - Keep dependency/protocol identifiers such as herdr-core, hc and HC_SESSION intact. Legacy names belong only in upstream attribution, compatibility/import mappings and fixtures that test those mappings.
 - Preserve upstream copyright, licenses and applicable notices for reused code, assets and test data. Never imply ownership of inherited work.
 
@@ -30,6 +30,7 @@ This repository is the planned standalone native client over herdr-core. Read RE
 - Follow docs/REVIEW_POLICY.md, including the user-requested Thermo-Nuclear Code Quality Review and separate correctness/security checks for implementation changes.
 - Add meaningful tests with behavior changes. Cover actual failure paths and ownership/race boundaries; avoid tests that only mirror the implementation.
 - Follow docs/TEST_STRATEGY.md. Linux containers do not verify macOS/Windows GUI behavior. A successful compile or offscreen render is not multi-monitor, clipboard, accessibility or native lifecycle proof.
+- Use this box or already configured Docker Desktop where useful; record unavailable checks and concrete revisit triggers. Keep local native safety, malformed-input bounds, view/session ownership and available regression failures as gates. Never bypass fail-closed platform guards to manufacture evidence or require WSL in place of native Windows.
 - Use synthetic conversations/accounts/projects. Never copy live credentials or publish raw logs, private rule data, account identifiers or personal paths in proof.
 - Record actual exit codes, the tested commit, OS/provider/tool versions and limits. Preserve the distinction between observed results and hypotheses.
 
