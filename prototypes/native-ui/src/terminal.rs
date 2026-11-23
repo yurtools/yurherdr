@@ -4,7 +4,7 @@ use crate::{
     isolation::GuardedRun,
     panes::{PaneId, Panes, ViewLease},
 };
-use portable_pty::{Child, CommandBuilder, MasterPty, PtySize};
+use portable_pty::{Child, ChildKiller, CommandBuilder, MasterPty, PtySize};
 use std::{
     io::{Read, Write},
     path::Path,
@@ -29,6 +29,7 @@ pub enum TerminalError {
     StaleView,
     Stopped,
     Flood,
+    WriteTimeout,
 }
 #[derive(Clone, Debug)]
 pub struct Cell {
@@ -126,8 +127,52 @@ pub struct Terminal {
     cancelled: Arc<AtomicBool>,
     grid: Arc<Mutex<Grid>>,
     latest: Arc<Mutex<Arc<Snapshot>>>,
+    stop: OwnedStop,
+}
+struct StopState {
+    killer: Box<dyn ChildKiller + Send + Sync>,
+    pid: Option<u32>,
+    retired: bool,
+}
+/// Independent of the writer queue. The gate serializes signaling with reaping
+/// so a retained stop handle can never signal a recycled PID after child exit.
+#[derive(Clone)]
+pub struct OwnedStop {
+    state: Arc<Mutex<StopState>>,
+    requested: Arc<AtomicBool>,
+}
+impl OwnedStop {
+    pub fn is_requested(&self) -> bool {
+        self.requested.load(Ordering::Acquire)
+    }
+    pub fn request(&self) -> Result<(), TerminalError> {
+        let mut state = self.state.lock().unwrap();
+        if state.retired || self.is_requested() {
+            return Ok(());
+        }
+        #[cfg(unix)]
+        let result = if let Some(pid) = state.pid {
+            // SAFETY: pid came from our unreaped owned child. This gate is also
+            // held by the reaper; no PID-reuse race or process-name search.
+            let result = unsafe { libc::kill(pid as i32, libc::SIGKILL) };
+            if result == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH) {
+                Ok(())
+            } else {
+                Err(TerminalError::Io)
+            }
+        } else {
+            state.killer.kill().map_err(|_| TerminalError::Io)
+        };
+        #[cfg(not(unix))]
+        let result = state.killer.kill().map_err(|_| TerminalError::Io);
+        self.requested.store(true, Ordering::Release);
+        result
+    }
 }
 impl Terminal {
+    pub fn stop_handle(&self) -> OwnedStop {
+        self.stop.clone()
+    }
     /// Executable is an explicit absolute path to THIS probe build. The public
     /// CLI never exposes an arbitrary command line. Paths remain OsStr values.
     pub fn start(
@@ -151,14 +196,12 @@ impl Terminal {
             .master
             .try_clone_reader()
             .map_err(|_| TerminalError::Start)?;
-        let writer = pair
-            .master
-            .take_writer()
-            .map_err(|_| TerminalError::Start)?;
+        let writer = owned_writer(&*pair.master)?;
         let mut command = CommandBuilder::new(executable);
         command.env_clear();
         command.env("TERM", "xterm-256color");
         command.env("LANG", "C.UTF-8");
+        command.env("YURHERDR_PARENT_PID", std::process::id().to_string());
         // Required only by Windows process/runtime startup; never profile roots.
         #[cfg(windows)]
         for key in ["SystemRoot", "WINDIR"] {
@@ -180,6 +223,14 @@ impl Terminal {
         let grid = Arc::new(Mutex::new(Grid::new(24, 80)?));
         let latest = Arc::new(Mutex::new(Arc::new(grid.lock().unwrap().snapshot())));
         let cancelled = Arc::new(AtomicBool::new(false));
+        let stop = OwnedStop {
+            state: Arc::new(Mutex::new(StopState {
+                killer: child.clone_killer(),
+                pid: child.process_id(),
+                retired: false,
+            })),
+            requested: cancelled.clone(),
+        };
         let mut terminal = Self {
             child: Some(child),
             master: pair.master,
@@ -188,6 +239,7 @@ impl Terminal {
             cancelled,
             grid,
             latest,
+            stop,
         };
         let (grid, latest, cancelled) = (
             terminal.grid.clone(),
@@ -244,11 +296,36 @@ impl Terminal {
         if bytes.len() > MAX_INPUT {
             return Err(TerminalError::Bounds);
         }
-        self.writer
-            .as_mut()
-            .ok_or(TerminalError::Stopped)?
-            .write_all(bytes)
-            .map_err(|_| TerminalError::Io)
+        if self.stop.is_requested() {
+            return Err(TerminalError::Stopped);
+        }
+        let writer = self.writer.as_mut().ok_or(TerminalError::Stopped)?;
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        let mut offset = 0;
+        while offset < bytes.len() {
+            if self.stop.is_requested() {
+                return Err(TerminalError::Stopped);
+            }
+            if std::time::Instant::now() >= deadline {
+                return Err(TerminalError::WriteTimeout);
+            }
+            match writer.write(&bytes[offset..]) {
+                Ok(0) => return Err(TerminalError::Io),
+                Ok(n) => offset += n,
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    std::thread::sleep(std::time::Duration::from_millis(5))
+                }
+                Err(_) => {
+                    return Err(if self.stop.is_requested() {
+                        TerminalError::Stopped
+                    } else {
+                        TerminalError::Io
+                    });
+                }
+            }
+        }
+        Ok(())
     }
     pub fn paste(
         &mut self,
@@ -291,8 +368,9 @@ impl Terminal {
         )
     }
     pub fn stop(&mut self) -> Result<(), TerminalError> {
-        self.cancelled.store(true, Ordering::Release);
+        let signaled = self.stop.request();
         self.writer.take();
+        let mut lifecycle = self.stop.state.lock().unwrap();
         let result = if let Some(mut child) = self.child.take() {
             match child.try_wait() {
                 Ok(Some(_)) => Ok(()),
@@ -309,10 +387,15 @@ impl Terminal {
         } else {
             Ok(())
         };
+        lifecycle.retired = true;
+        drop(lifecycle);
         if let Some(reader) = self.reader.take() {
             reader.join().map_err(|_| TerminalError::Io)?;
         }
-        result
+        let mut final_frame = self.grid.lock().unwrap().snapshot();
+        final_frame.eof = true;
+        *self.latest.lock().unwrap() = Arc::new(final_frame);
+        signaled.and(result)
     }
 }
 impl Drop for Terminal {
@@ -343,6 +426,10 @@ fn read_grid(
                 }
             }
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                std::thread::sleep(std::time::Duration::from_millis(5));
+                continue;
+            }
             _ => {
                 let mut snapshot = grid.lock().unwrap().snapshot();
                 snapshot.eof = true;
@@ -353,11 +440,36 @@ fn read_grid(
     }
 }
 
+#[cfg(unix)]
+fn owned_writer(master: &(dyn MasterPty + Send)) -> Result<Box<dyn Write + Send>, TerminalError> {
+    use std::os::fd::FromRawFd;
+    let fd = master.as_raw_fd().ok_or(TerminalError::Start)?;
+    // SAFETY: duplicate the owned master with close-on-exec; only this run's
+    // file description becomes nonblocking. The reader handles WouldBlock.
+    let duplicate = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 0) };
+    if duplicate < 0 {
+        return Err(TerminalError::Start);
+    }
+    let file = unsafe { std::fs::File::from_raw_fd(duplicate) };
+    let flags = unsafe { libc::fcntl(duplicate, libc::F_GETFL) };
+    if flags < 0 || unsafe { libc::fcntl(duplicate, libc::F_SETFL, flags | libc::O_NONBLOCK) } < 0 {
+        return Err(TerminalError::Start);
+    }
+    // A plain descriptor also avoids portable-pty's blocking EOT write in its
+    // Unix writer destructor. Stop explicitly owns child termination instead.
+    Ok(Box::new(file))
+}
+#[cfg(not(unix))]
+fn owned_writer(master: &(dyn MasterPty + Send)) -> Result<Box<dyn Write + Send>, TerminalError> {
+    master.take_writer().map_err(|_| TerminalError::Start)
+}
+
 #[derive(Clone, Copy)]
 pub enum FixtureMode {
     Interactive,
     Eof,
     Flood,
+    Stalled,
 }
 impl FixtureMode {
     pub fn name(self) -> &'static str {
@@ -365,6 +477,7 @@ impl FixtureMode {
             Self::Interactive => "interactive",
             Self::Eof => "eof",
             Self::Flood => "flood",
+            Self::Stalled => "stalled",
         }
     }
 }
@@ -372,6 +485,21 @@ impl FixtureMode {
 /// Child entry: guard must have passed again before this is called. No process
 /// creation, network, credentials, shell expansion or inherited environment.
 pub fn fixture_child(_run: GuardedRun, mode: FixtureMode) -> std::io::Result<()> {
+    #[cfg(target_os = "linux")]
+    {
+        let expected = std::env::var("YURHERDR_PARENT_PID")
+            .ok()
+            .and_then(|s| s.parse::<u32>().ok())
+            .ok_or_else(|| std::io::Error::other("missing fixture parent"))?;
+        // SAFETY: Linux parent-death setup takes only integer arguments. The
+        // second check covers parent exit between fork and registration.
+        if unsafe {
+            libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL) != 0
+                || libc::getppid() as u32 != expected
+        } {
+            return Err(std::io::Error::other("fixture parent ended"));
+        }
+    }
     #[cfg(unix)]
     {
         // SAFETY: termios is initialized by tcgetattr before use; fd 0 is the
@@ -406,6 +534,9 @@ pub fn fixture_child(_run: GuardedRun, mode: FixtureMode) -> std::io::Result<()>
             return out.flush();
         }
         FixtureMode::Interactive => {}
+        FixtureMode::Stalled => loop {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        },
     }
     let mut input = [0; 1024];
     loop {

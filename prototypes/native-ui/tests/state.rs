@@ -67,6 +67,18 @@ fn images_are_decoded_and_late_replies_cannot_replace_a_new_draft() {
     assert!(draft.image.is_none());
 }
 #[test]
+fn cancelling_a_reply_does_not_create_another_physical_worker() {
+    let mut draft = ClipboardDraft::default();
+    let (ticket, worker) = draft.begin_work().unwrap();
+    draft.remove_image();
+    draft.close_view();
+    draft.reopen_view();
+    assert!(matches!(draft.begin_work(), Err(PasteError::Busy)));
+    assert!(!draft.finish(ticket, Err(PasteError::Malformed)));
+    drop(worker);
+    assert!(draft.begin_work().is_ok());
+}
+#[test]
 fn malformed_mismatched_and_bounded_images_leave_existing_preview_intact() {
     assert!(matches!(
         clipboard::decode("image/png", &[]),
@@ -110,4 +122,19 @@ fn malformed_mismatched_and_bounded_images_leave_existing_preview_intact() {
     let t = draft.begin().unwrap();
     draft.finish(t, Err(PasteError::Malformed));
     assert!(draft.image.is_some());
+}
+#[test]
+fn jpeg_orientation_is_applied_to_the_intended_preview() {
+    let mut jpeg = vec![];
+    image::codecs::jpeg::JpegEncoder::new(&mut jpeg)
+        .encode(&[255, 0, 0, 0, 0, 255], 2, 1, ExtendedColorType::Rgb8)
+        .unwrap();
+    let exif = b"Exif\0\0II\x2a\0\x08\0\0\0\x01\0\x12\x01\x03\0\x01\0\0\0\x06\0\0\0\0\0\0\0";
+    let mut oriented = vec![0xff, 0xd8, 0xff, 0xe1];
+    oriented.extend_from_slice(&((exif.len() + 2) as u16).to_be_bytes());
+    oriented.extend_from_slice(exif);
+    oriented.extend_from_slice(&jpeg[2..]);
+    let decoded = clipboard::decode("image/jpeg", &oriented).unwrap();
+    assert_eq!((decoded.width, decoded.height), (1, 2));
+    assert_eq!(decoded.rgba.len(), 8);
 }

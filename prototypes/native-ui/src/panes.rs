@@ -8,7 +8,7 @@ pub enum PaneId {
     Document,
     Terminal,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WindowId(pub u64);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ViewLease {
@@ -22,22 +22,34 @@ pub struct Transfer {
     destination: WindowId,
     epoch: u64,
 }
+impl Transfer {
+    pub fn source_lease(self) -> ViewLease {
+        self.source
+    }
+    pub fn destination_lease(self) -> ViewLease {
+        ViewLease {
+            pane: self.source.pane,
+            window: self.destination,
+            epoch: self.epoch,
+        }
+    }
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MoveError {
-    Hidden,
     Busy,
     Stale,
     SameWindow,
     Exhausted,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Placement {
     view: Option<ViewLease>,
     pending: Option<Transfer>,
     epoch: u64,
 }
 
+#[derive(Clone)]
 pub struct Panes {
     placements: BTreeMap<PaneId, Placement>,
 }
@@ -151,5 +163,8 @@ impl Panes {
     }
     pub fn accepts(&self, view: ViewLease) -> bool {
         self.view(view.pane) == Some(view)
+    }
+    pub fn moving(&self, pane: PaneId) -> bool {
+        self.placements[&pane].pending.is_some()
     }
 }

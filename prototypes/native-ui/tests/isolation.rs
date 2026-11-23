@@ -73,6 +73,47 @@ fn inherited_session_including_empty_is_rejected_before_path_access() {
     }
 }
 #[test]
+fn live_profile_roots_are_rejected_without_creating_a_layout() {
+    if let Some(home) = std::env::var_os("HOME") {
+        let nonce = "a".repeat(64);
+        let root = PathBuf::from(home).join(".config/herdr-app/yurherdr-run-aaaaaaaaaaaaaaaa");
+        assert_eq!(
+            validate(&root, &nonce, None).unwrap_err(),
+            GuardError::InvalidPath
+        );
+    }
+}
+#[test]
+fn native_profile_requires_every_owned_directory_without_changing_parent_environment() {
+    let l = Layout::new();
+    let run = validate(&l.root, &l.nonce, None).unwrap();
+    assert_eq!(
+        run.native_profile(|_| None),
+        Err(GuardError::InvalidProfile)
+    );
+    let expected = |name: &str| {
+        Some(
+            l.root
+                .join(match name {
+                    "XDG_CONFIG_HOME" | "YURHERDR_CONFIG_DIR" => "config",
+                    "XDG_DATA_HOME" | "XDG_STATE_HOME" | "YURHERDR_DATA_DIR" => "data",
+                    "XDG_CACHE_HOME" | "YURHERDR_CACHE_DIR" => "cache",
+                    _ => "logs",
+                })
+                .into_os_string(),
+        )
+    };
+    assert_eq!(run.native_profile(expected), Ok(()));
+    assert_eq!(
+        run.native_profile(|name| if name == "YURHERDR_LOG_DIR" {
+            Some(l.root.join("data").into_os_string())
+        } else {
+            expected(name)
+        }),
+        Err(GuardError::InvalidProfile)
+    );
+}
+#[test]
 fn aliases_traversal_and_insecure_permissions_are_rejected() {
     let l = Layout::new();
     assert!(validate(&l.root.join(".."), &l.nonce, None).is_err());

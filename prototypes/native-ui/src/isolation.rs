@@ -21,6 +21,7 @@ pub enum GuardError {
     Io,
     PlatformNotAudited,
     CoreNotVerified,
+    InvalidProfile,
 }
 
 impl std::fmt::Display for GuardError {
@@ -35,6 +36,9 @@ impl std::fmt::Display for GuardError {
             Self::PlatformNotAudited => "platform ownership/reparse validation is pending",
             Self::CoreNotVerified => {
                 "native launch blocked: independent development core not verified"
+            }
+            Self::InvalidProfile => {
+                "native profile is not isolated; use run_probe.py with this owned run root"
             }
         })
     }
@@ -52,7 +56,7 @@ struct Manifest {
 
 /// Not a security sandbox. Same-user malicious mutation is outside this probe.
 /// No native/runtime authority is granted by this read-only validation alone.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GuardedRun {
     root: PathBuf,
     nonce: String,
@@ -64,6 +68,27 @@ impl GuardedRun {
     }
     pub(crate) fn nonce_for_child(&self) -> &str {
         &self.nonce
+    }
+    pub fn native_profile(
+        &self,
+        environment: impl Fn(&str) -> Option<std::ffi::OsString>,
+    ) -> Result<(), GuardError> {
+        self.revalidate()?;
+        for (variable, directory) in [
+            ("XDG_CONFIG_HOME", "config"),
+            ("XDG_DATA_HOME", "data"),
+            ("XDG_CACHE_HOME", "cache"),
+            ("XDG_STATE_HOME", "data"),
+            ("YURHERDR_CONFIG_DIR", "config"),
+            ("YURHERDR_DATA_DIR", "data"),
+            ("YURHERDR_CACHE_DIR", "cache"),
+            ("YURHERDR_LOG_DIR", "logs"),
+        ] {
+            if environment(variable).as_deref() != Some(self.root.join(directory).as_os_str()) {
+                return Err(GuardError::InvalidProfile);
+            }
+        }
+        Ok(())
     }
 
     pub fn revalidate(&self) -> Result<(), GuardError> {
@@ -124,6 +149,43 @@ fn absolute_clean(path: &Path) -> Result<(), GuardError> {
     Ok(())
 }
 
+fn outside_live_roots(root: &Path) -> Result<(), GuardError> {
+    let mut protected = Vec::new();
+    if let Some(home) = std::env::var_os("HOME") {
+        let home = PathBuf::from(home);
+        for relative in [
+            ".config/herdr-app",
+            ".config/herdr-core",
+            ".local/share/herdr-app",
+            ".local/share/shepherdr",
+            ".local/state/herdr-core",
+            ".cache/herdr-app",
+        ] {
+            protected.push(home.join(relative));
+        }
+    }
+    if let Some(path) = std::env::var_os("HERDR_APP_HOME") {
+        protected.push(PathBuf::from(path));
+    }
+    for (variable, suffix) in [
+        ("XDG_CONFIG_HOME", "herdr-app"),
+        ("XDG_CONFIG_HOME", "herdr-core"),
+        ("XDG_STATE_HOME", "herdr-core"),
+        ("XDG_DATA_HOME", "shepherdr"),
+    ] {
+        if let Some(parent) = std::env::var_os(variable) {
+            protected.push(PathBuf::from(parent).join(suffix));
+        }
+    }
+    if protected
+        .iter()
+        .any(|path| path.is_absolute() && root.starts_with(path))
+    {
+        return Err(GuardError::InvalidPath);
+    }
+    Ok(())
+}
+
 #[cfg(unix)]
 fn check_ancestor(m: &fs::Metadata) -> Result<(), GuardError> {
     use std::os::unix::fs::MetadataExt;
@@ -155,7 +217,7 @@ fn private(_: &fs::Metadata) -> Result<(), GuardError> {
     Err(GuardError::PlatformNotAudited)
 }
 
-fn small_file(path: &Path, limit: u64) -> Result<Vec<u8>, GuardError> {
+pub(crate) fn small_file(path: &Path, limit: u64) -> Result<Vec<u8>, GuardError> {
     let m = fs::symlink_metadata(path).map_err(|_| GuardError::Io)?;
     if !m.is_file() || m.file_type().is_symlink() || m.len() > limit {
         return Err(GuardError::InvalidManifest);
@@ -197,6 +259,7 @@ pub fn validate(
     if !nonce_valid(nonce) {
         return Err(GuardError::MarkerMismatch);
     }
+    outside_live_roots(root)?;
     absolute_clean(root)?;
     if root.file_name() != Some(OsStr::new(&format!("yurherdr-run-{}", &nonce[..16]))) {
         return Err(GuardError::InvalidPath);
@@ -238,6 +301,7 @@ pub fn prepare(parent: &Path, nonce: &str) -> Result<PathBuf, GuardError> {
     }
     absolute_clean(parent)?;
     let root = parent.join(format!("yurherdr-run-{}", &nonce[..16]));
+    outside_live_roots(&root)?;
     private_dir(&root)?;
     write_new(&root.join(".yurherdr-run"), nonce.as_bytes())?;
     for name in DIRECTORIES {

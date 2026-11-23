@@ -1,7 +1,13 @@
 //! Validated encoded images and stale-reply rejection. Call decode on a worker;
 //! no file/URL resolver or provider delivery exists here.
-use image::{ImageFormat, ImageReader, Limits};
-use std::{io::Cursor, sync::Arc};
+use image::{ImageDecoder, ImageFormat, ImageReader, Limits};
+use std::{
+    io::Cursor,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+};
 
 pub const MAX_ENCODED: usize = 4 * 1024 * 1024;
 pub const MAX_PIXELS: u64 = 4 * 1024 * 1024;
@@ -11,6 +17,7 @@ pub const MAX_DIMENSION: u32 = 4096;
 pub enum PasteError {
     Empty,
     Unsupported,
+    NativeUnavailable,
     Busy,
     Malformed,
     Oversized,
@@ -22,7 +29,10 @@ impl PasteError {
         match self {
             Self::Empty => "Copy an image, then paste again.",
             Self::Unsupported => "Copy a PNG or JPEG image, then paste again.",
-            Self::Busy => "Wait for the current paste to finish.",
+            Self::NativeUnavailable => {
+                "Image paste needs a supported Wayland desktop. Use a fixture image for this evaluation."
+            }
+            Self::Busy => "Wait a moment, then paste again.",
             Self::Malformed => "That image could not be read. Copy it again.",
             Self::Oversized => "Use an image up to four megapixels and four MiB.",
             Self::Closed => "Reopen the composer to paste an image.",
@@ -53,9 +63,13 @@ pub fn decode(mime: &str, bytes: &[u8]) -> Result<DraftImage, PasteError> {
     if image::guess_format(bytes).map_err(|_| PasteError::Malformed)? != format {
         return Err(PasteError::Malformed);
     }
-    let (width, height) = ImageReader::with_format(Cursor::new(bytes), format)
-        .into_dimensions()
-        .map_err(|_| PasteError::Malformed)?;
+    let mut limits = Limits::default();
+    limits.max_image_width = Some(MAX_DIMENSION);
+    limits.max_image_height = Some(MAX_DIMENSION);
+    limits.max_alloc = Some(MAX_PIXELS * 8);
+    let mut header = ImageReader::with_format(Cursor::new(bytes), format);
+    header.limits(limits.clone());
+    let (width, height) = header.into_dimensions().map_err(image_error)?;
     if width == 0
         || height == 0
         || width > MAX_DIMENSION
@@ -65,26 +79,33 @@ pub fn decode(mime: &str, bytes: &[u8]) -> Result<DraftImage, PasteError> {
         return Err(PasteError::Oversized);
     }
     let mut reader = ImageReader::with_format(Cursor::new(bytes), format);
-    let mut limits = Limits::default();
-    limits.max_image_width = Some(MAX_DIMENSION);
-    limits.max_image_height = Some(MAX_DIMENSION);
-    limits.max_alloc = Some(MAX_PIXELS * 8);
-    reader.limits(limits);
-    let image = reader
-        .decode()
-        .map_err(|_| PasteError::Malformed)?
-        .into_rgba8();
+    reader.limits(limits.clone());
+    let mut decoder = reader.into_decoder().map_err(image_error)?;
+    let orientation = decoder.orientation().map_err(image_error)?;
+    limits.reserve(decoder.total_bytes()).map_err(image_error)?;
+    decoder.set_limits(limits).map_err(image_error)?;
+    let mut image = image::DynamicImage::from_decoder(decoder).map_err(image_error)?;
+    image.apply_orientation(orientation);
+    let image = image.into_rgba8();
+    let (width, height) = image.dimensions();
     Ok(DraftImage {
         width,
         height,
         rgba: image.into_raw().into(),
     })
 }
+fn image_error(error: image::ImageError) -> PasteError {
+    match error {
+        image::ImageError::Limits(_) => PasteError::Oversized,
+        _ => PasteError::Malformed,
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PasteTicket(u64);
 
 pub struct ClipboardDraft {
+    worker: Arc<AtomicBool>,
     generation: u64,
     pending: Option<PasteTicket>,
     open: bool,
@@ -94,6 +115,7 @@ pub struct ClipboardDraft {
 impl Default for ClipboardDraft {
     fn default() -> Self {
         Self {
+            worker: Arc::new(AtomicBool::new(false)),
             generation: 0,
             pending: None,
             open: true,
@@ -103,6 +125,16 @@ impl Default for ClipboardDraft {
     }
 }
 impl ClipboardDraft {
+    /// One physical read/decode remains in flight even if its logical reply is
+    /// cancelled by Remove/Close. A late helper cannot cause a worker flood.
+    pub fn begin_work(&mut self) -> Result<(PasteTicket, PasteWorker), PasteError> {
+        self.worker
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .map_err(|_| PasteError::Busy)?;
+        let worker = PasteWorker(self.worker.clone());
+        let ticket = self.begin()?;
+        Ok((ticket, worker))
+    }
     pub fn begin(&mut self) -> Result<PasteTicket, PasteError> {
         if !self.open {
             return Err(PasteError::Closed);
@@ -144,5 +176,11 @@ impl ClipboardDraft {
         self.pending = None;
         self.image = None;
         self.error = None;
+    }
+}
+pub struct PasteWorker(Arc<AtomicBool>);
+impl Drop for PasteWorker {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
     }
 }

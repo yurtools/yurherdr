@@ -129,3 +129,49 @@ fn failed_start_eof_flood_and_partial_teardown_are_bounded() {
     wait(|| flood.snapshot().error == Some(TerminalError::Flood));
     flood.stop().unwrap();
 }
+
+#[test]
+fn independent_stop_interrupts_a_real_blocked_pty_writer_and_reaps_it() {
+    let r = Run::new();
+    let run = validate(&r.root, &r.nonce, None).unwrap();
+    let exe = std::path::Path::new(env!("CARGO_BIN_EXE_yurherdr-native-ui-probe"));
+    let mut terminal = Terminal::start(&run, exe, FixtureMode::Stalled).unwrap();
+    wait(|| text(&terminal).contains("ready"));
+    let stop = terminal.stop_handle();
+    let (started, ready) = std::sync::mpsc::channel();
+    let (done, result) = std::sync::mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        let mut panes = Panes::default();
+        let view = panes.reopen(PaneId::Terminal, WindowId(1)).unwrap();
+        started.send(()).unwrap();
+        let block = [b'x'; 16384];
+        let mut outcome = Ok(());
+        for _ in 0..128 {
+            outcome = terminal.input(&panes, view, &block);
+            if outcome.is_err() {
+                break;
+            }
+        }
+        let teardown = terminal.stop();
+        done.send((outcome, teardown)).unwrap();
+    });
+    ready.recv_timeout(Duration::from_secs(2)).unwrap();
+    assert!(
+        matches!(
+            result.recv_timeout(Duration::from_millis(100)),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout)
+        ),
+        "stalled child must actually block writes before Stop"
+    );
+    let began = Instant::now();
+    stop.request().unwrap();
+    let completed = result.recv_timeout(Duration::from_secs(2));
+    let _ = stop.request();
+    worker.join().unwrap();
+    let (write, teardown) = completed
+        .expect("independent Stop must interrupt write and finish teardown within two seconds");
+    assert!(write.is_err());
+    assert!(teardown.is_ok());
+    assert!(began.elapsed() < Duration::from_secs(2));
+    stop.request().unwrap();
+}

@@ -2,7 +2,7 @@
 
 YUR-004 · Feature `71116fa009c34f8cacd62f2992e4c6bd` · verified 2026-11-23.
 
-This is an inventory for a documentation-only project. No application source, assets, fixtures, dependencies or toolkits are adopted by this change. A source reference establishes origin, not ownership, compatibility, legal clearance or native platform support. Review-skill access and hashes are in the [review policy](REVIEW_POLICY.md).
+The YUR-004 baseline was documentation-only and adopted no application dependencies. YUR-005 adds an explicitly experimental dependency graph under `prototypes/native-ui/`; it does not select the product toolkit. A source reference establishes origin, not ownership, compatibility, legal clearance or native platform support. Review-skill access and hashes are in the [review policy](REVIEW_POLICY.md).
 
 ## Frozen legacy baseline
 
@@ -67,7 +67,15 @@ Responsibilities below reflect the inspected texts; they are not a file-by-file 
 
 ## Proposed sources and later owners
 
-Every row below is **unselected and unpinned here**, except the explicit legacy and review pins above. These discovery URLs may move. Before evaluation/adoption, the owner must resolve the exact source repository/package, full commit or immutable artifact plus digest, version, license/notice files (including nested/transitive material), original attribution, intended files/use and Windows/macOS/Linux evidence. An evaluation pin does not authorize shipping it. Record rejection or selection in that task’s evidence/ADR; update this inventory when a dependency is actually adopted.
+The YUR-005 **experimental** pins, exact archive digests, attribution and retained
+terms are now in [the prototype notice](../prototypes/native-ui/NOTICE.md), with
+the locked target-specific [dependency inventory](../prototypes/native-ui/DEPENDENCIES.csv)
+and [Proposed ADR](adr/0001-native-ui-toolkit.md). This includes native Kit/GPUI,
+independent PTY/parser and Linux clipboard fixtures, plus a separate independently
+built core/Ghostty/local Zig tool. No JavaScript host, Zed terminal crate or Qt
+dependency was adopted. Raw source/review/runtime evidence remains ignored.
+
+Other rows below remain **unselected and unpinned here**. These discovery URLs may move. Before evaluation/adoption, the owner must resolve the exact source repository/package, full commit or immutable artifact plus digest, version, license/notice files (including nested/transitive material), original attribution, intended files/use and Windows/macOS/Linux evidence. An evaluation pin does not authorize shipping it. Record rejection or selection in that task’s evidence/ADR; update this inventory when a dependency is actually adopted.
 
 | Source category / discovery references | Later owner and gate |
 | --- | --- |

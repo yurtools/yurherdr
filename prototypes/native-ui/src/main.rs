@@ -14,6 +14,7 @@ fn run(args: &[OsString]) -> Result<(), GuardError> {
             Some("interactive") => FixtureMode::Interactive,
             Some("eof") => FixtureMode::Eof,
             Some("flood") => FixtureMode::Flood,
+            Some("stalled") => FixtureMode::Stalled,
             _ => return Err(GuardError::InvalidManifest),
         };
         return terminal::fixture_child(run, mode).map_err(|_| GuardError::Io);
@@ -22,12 +23,24 @@ fn run(args: &[OsString]) -> Result<(), GuardError> {
         return Err(GuardError::InvalidManifest);
     }
     let nonce = args[3].to_str().ok_or(GuardError::MarkerMismatch)?;
+    if args[0] == "--clipboard-child" {
+        let run = isolation::validate(
+            Path::new(&args[1]),
+            nonce,
+            std::env::var_os("HC_SESSION").as_deref(),
+        )?;
+        std::process::exit(yurherdr_native_ui_probe::clipboard_native::helper(run));
+    }
     if args[0] == "--prepare-run" {
         isolation::prepare(Path::new(&args[1]), nonce)?;
         println!("Yurherdr run layout created; no runtime started");
         return Ok(());
     }
-    if args[0] != "--guard-only" && args[0] != "--native" {
+    if args[0] != "--guard-only"
+        && args[0] != "--native"
+        && args[0] != "--native-smoke"
+        && args[0] != "--core-check"
+    {
         return Err(GuardError::InvalidManifest);
     }
     let run = isolation::validate(
@@ -39,9 +52,28 @@ fn run(args: &[OsString]) -> Result<(), GuardError> {
         println!("Yurherdr isolation guard passed; runtime effects: zero; core: unverified");
         return Ok(());
     }
+    if args[0] == "--core-check" {
+        let mut core = yurherdr_native_ui_probe::core::DevelopmentCore::start(&run)?;
+        core.verify_for(&run)?;
+        core.stop()?;
+        core.stop()?;
+        println!(
+            "Yurherdr development core: owned endpoint and identity verified; stopped and reaped; no native window"
+        );
+        return Ok(());
+    }
     // No GPUI Application or fixture is constructed before BOTH gates pass.
-    run.authorize_native()?;
-    Err(GuardError::CoreNotVerified)
+    #[cfg(feature = "native")]
+    {
+        run.native_profile(|name| std::env::var_os(name))?;
+        let core = yurherdr_native_ui_probe::core::DevelopmentCore::start(&run)?;
+        core.verify_for(&run)?;
+        yurherdr_native_ui_probe::native::launch(run, core, args[0] == "--native-smoke")
+    }
+    #[cfg(not(feature = "native"))]
+    {
+        Err(GuardError::CoreNotVerified)
+    }
 }
 
 fn main() {
