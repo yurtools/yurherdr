@@ -174,35 +174,43 @@ pub fn launch(run: GuardedRun, core: DevelopmentCore, smoke: bool) -> Result<(),
         }
     });
     app.run(move |cx| {
-        cx.set_app_identity(APP_ID, "Yurherdr UI evaluation");
-        gpui_kit::init(cx);
-        cx.set_global(AppOwner {
-            _model: model.clone(),
-            _core: core,
-        });
-        if smoke {
-            // Public connected-platform observation, not an inference from
-            // DISPLAY/WAYLAND_DISPLAY or successful headless window creation.
-            eprintln!("Yurherdr probe display backend: {}", cx.compositor_name());
-        }
-        #[cfg(target_os = "linux")]
-        if cx.graphical_environment().is_none() {
-            eprintln!("Yurherdr probe: headless backend; OS window unavailable");
-            cx.quit();
-            return;
-        }
-        if smoke {
-            cx.spawn(async move |cx| {
-                cx.background_executor().timer(Duration::from_secs(5)).await;
-                cx.update(|cx| cx.quit());
-            })
-            .detach();
-        }
-        if !open_workspace(model.clone(), cx) {
-            cx.quit();
-        } else {
-            observed.store(true, std::sync::atomic::Ordering::Release);
-        }
+        // Linux invokes its launch callback before calloop::run resets the
+        // stop signal. A foreground task is dispatched by the running loop;
+        // both headless rejection and initial-window failure can now quit.
+        cx.spawn(async move |cx| {
+            cx.update(move |cx| {
+                cx.set_app_identity(APP_ID, "Yurherdr UI evaluation");
+                gpui_kit::init(cx);
+                cx.set_global(AppOwner {
+                    _model: model.clone(),
+                    _core: core,
+                });
+                if smoke {
+                    // Public connected-platform observation, not an inference from
+                    // DISPLAY/WAYLAND_DISPLAY or successful headless window creation.
+                    eprintln!("Yurherdr probe display backend: {}", cx.compositor_name());
+                }
+                #[cfg(target_os = "linux")]
+                if cx.graphical_environment().is_none() {
+                    eprintln!("Yurherdr probe: headless backend; OS window unavailable");
+                    cx.quit();
+                    return;
+                }
+                if smoke {
+                    cx.spawn(async move |cx| {
+                        cx.background_executor().timer(Duration::from_secs(5)).await;
+                        cx.update(|cx| cx.quit());
+                    })
+                    .detach();
+                }
+                if !open_workspace(model.clone(), cx) {
+                    cx.quit();
+                } else {
+                    observed.store(true, std::sync::atomic::Ordering::Release);
+                }
+            });
+        })
+        .detach();
     });
     if opened.load(std::sync::atomic::Ordering::Acquire) {
         Ok(())

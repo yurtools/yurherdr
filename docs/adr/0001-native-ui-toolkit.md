@@ -62,6 +62,13 @@ native mode now rejects headless fallback. No startup/input/render/resource
 benchmark is claimed. Research numerical thresholds remain proposals. No Windows
 or macOS host, mixed-DPI hardware or remote/cloud execution has been used.
 
+The first explicit headless rejection required wrapper termination (exit 124).
+The probe now schedules startup on the running foreground loop, covering both
+headless rejection and initial-window-open failure; synchronous quit in Linux's
+pre-loop launch callback was erased by calloop's startup reset. The regression
+test requires prompt nonzero exit and owned-core cleanup without a wrapper kill.
+The failed attempt remains in local evidence; it is not a passing isolation run.
+
 ## Narrow alternatives
 
 Qt's pinned QDockWidget source provides a known floating-dock comparison point;

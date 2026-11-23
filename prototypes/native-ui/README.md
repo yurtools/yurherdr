@@ -153,6 +153,13 @@ Linux native mode rejects a headless GPUI connection before opening windows.
 Smoke diagnostics report the public connected-platform compositor/backend name.
 An earlier exit-zero attempt without that observation remains backend-unverified;
 window construction success alone is not OS presentation evidence.
+An initial headless rejection printed an error but hung until the twenty-second
+wrapper deadline (exit 124). Startup now runs as a foreground task after the
+event loop starts, so both headless rejection and initial-window failure can
+quit after calloop's stop-signal reset. A real independent-core regression test
+requires headless exit two and completed core cleanup within ten seconds;
+external timeout intervention fails that test. Actual OS window-open failure
+has not been forced; its shared scheduled startup path is source-reviewed.
 The later container attempt reported **Wayland**, exited zero and removed its
 owned core socket. No presentation screenshot, native interaction or compositor/
 GPU/IME version was observed; those acceptance cells remain pending.
